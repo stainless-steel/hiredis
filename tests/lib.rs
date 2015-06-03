@@ -13,4 +13,8 @@ fn workflow() {
         Reply::Status(ref string) => assert_eq!(&string[..], "OK"),
         _ => assert!(false),
     }
+    match ok!(context.command(&["GET", "foo"])) {
+        Reply::String(ref string) => assert_eq!(&string[..], "Hi, there!"),
+        _ => assert!(false),
+    }
 }
