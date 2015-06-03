@@ -13,19 +13,10 @@ macro_rules! raise(
 );
 
 macro_rules! success(
-    (context: $context:expr) => ({
-        let raw = unsafe { &*$context.raw };
-        if raw.err != raw::REDIS_OK {
+    ($context:expr) => (unsafe {
+        if (*$context.raw).err != raw::REDIS_OK {
             return Err(Error {
-                message: c_str_to_string!(raw.errstr.as_ptr() as *const _),
-            });
-        }
-    });
-    (reply: $reply:expr) => ({
-        let raw = unsafe { &*$reply.raw };
-        if raw.kind == raw::REDIS_REPLY_ERROR {
-            return Err(Error {
-                message: c_str_to_string!(raw.string, raw.len),
+                message: c_str_to_string!((*$context.raw).errstr.as_ptr() as *const _),
             });
         }
     });
@@ -41,12 +32,12 @@ macro_rules! str_to_c_str(
 );
 
 macro_rules! c_str_to_string(
-    ($string:expr, $size:expr) => (unsafe {
+    ($string:expr, $size:expr) => ({
         let slice: &CStr = mem::transmute(slice::from_raw_parts($string as *const c_char,
                                                                 $size as usize + 1));
         String::from_utf8_lossy(slice.to_bytes()).into_owned()
     });
-    ($string:expr) => (unsafe {
+    ($string:expr) => ({
         String::from_utf8_lossy(CStr::from_ptr($string).to_bytes()).into_owned()
     });
 );
@@ -70,14 +61,7 @@ pub struct Error {
 }
 
 /// A reply.
-pub struct Reply {
-    pub kind: ReplyKind,
-    raw: *mut raw::redisReply,
-    phantom: PhantomData<raw::redisReply>,
-}
-
-/// A reply kind.
-pub enum ReplyKind {
+pub enum Reply {
     Status(String),
     Integer(i64),
     Nil,
@@ -111,7 +95,7 @@ impl Context {
             },
             phantom: PhantomData,
         };
-        success!(context: context);
+        success!(context);
         Ok(context)
     }
 
@@ -132,36 +116,41 @@ impl Context {
             raw::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *const *const _,
                                   argvlen.as_ptr()) as *mut raw::redisReply
         };
-        success!(context: self);
 
+        success!(self);
         debug_assert!(!raw.is_null());
 
-        let mut reply = Reply {
-            kind: ReplyKind::Nil,
-            raw: raw,
-            phantom: PhantomData,
-        };
-        success!(reply: reply);
+        unsafe {
+            let reply = match (*raw).kind {
+                raw::REDIS_REPLY_STATUS => {
+                    Reply::Status(c_str_to_string!((*raw).string, (*raw).len))
+                },
+                raw::REDIS_REPLY_INTEGER => {
+                    Reply::Integer((*raw).integer as i64)
+                },
+                raw::REDIS_REPLY_NIL => {
+                    Reply::Nil
+                }
+                raw::REDIS_REPLY_STRING => {
+                    Reply::String(c_str_to_string!((*raw).string, (*raw).len))
+                },
+                raw::REDIS_REPLY_ARRAY => {
+                    Reply::Array
+                },
+                raw::REDIS_REPLY_ERROR => {
+                    let message = c_str_to_string!((*raw).string, (*raw).len);
+                    raw::freeReplyObject(raw as *mut _);
+                    raise!(message);
+                },
+                _ => {
+                    raw::freeReplyObject(raw as *mut _);
+                    raise!("failed to identify a reply");
+                },
+            };
+            raw::freeReplyObject(raw as *mut _);
 
-        let raw = unsafe { &*raw };
-        reply.kind = match raw.kind {
-            raw::REDIS_REPLY_STATUS => {
-                ReplyKind::Status(c_str_to_string!(raw.string, raw.len))
-            },
-            raw::REDIS_REPLY_INTEGER => {
-                ReplyKind::Integer(raw.integer as i64)
-            },
-            raw::REDIS_REPLY_NIL => ReplyKind::Nil,
-            raw::REDIS_REPLY_STRING => {
-                ReplyKind::String(c_str_to_string!(raw.string, raw.len))
-            },
-            raw::REDIS_REPLY_ARRAY => {
-                ReplyKind::Array
-            },
-            _ => raise!("failed to identify a reply"),
-        };
-
-        Ok(reply)
+            Ok(reply)
+        }
     }
 
     /// Reconnect to the server.
@@ -192,13 +181,6 @@ impl Display for Error {
     #[inline]
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         Display::fmt(&self.message, formatter)
-    }
-}
-
-impl Drop for Reply {
-    #[inline]
-    fn drop(&mut self) {
-        unsafe { raw::freeReplyObject(self.raw as *mut _) };
     }
 }
 

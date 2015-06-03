@@ -1,5 +1,7 @@
 extern crate hiredis;
 
+use hiredis::Reply;
+
 macro_rules! ok(
     ($result:expr) => ($result.unwrap());
 );
@@ -7,5 +9,8 @@ macro_rules! ok(
 #[test]
 fn workflow() {
     let mut context = ok!(hiredis::connect("127.0.0.1", 4242));
-    let _reply = ok!(context.command(&["SET", "foo", "Hi, there!"]));
+    match ok!(context.command(&["SET", "foo", "Hi, there!"])) {
+        Reply::Status(ref string) => assert_eq!(&string[..], "OK"),
+        _ => assert!(false),
+    }
 }
