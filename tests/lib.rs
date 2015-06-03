@@ -7,5 +7,5 @@ macro_rules! ok(
 #[test]
 fn workflow() {
     let mut context = ok!(hiredis::connect("127.0.0.1", 4242));
-    let _reply = ok!(context.command(&[r#"SET foo "Hello, world!""#]));
+    let _reply = ok!(context.command(&["SET", "foo", "Hi, there!"]));
 }

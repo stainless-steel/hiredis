@@ -3,17 +3,29 @@ extern crate libc;
 
 use libc::{c_char, c_int, size_t};
 use std::convert::{From, Into};
+use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
+use std::fmt::{self, Display, Formatter};
+use std::{mem, slice};
 
 macro_rules! raise(
-    ($message:expr) => (return Err(::Error::from($message)));
+    ($message:expr) => (return Err(Error::from($message)));
 );
 
 macro_rules! success(
-    ($raw:expr) => (unsafe {
-        if (*$raw).err != ::raw::REDIS_OK {
-            return Err(::Error {
-                message: Some(c_str_to_string!((*$raw).errstr.as_ptr() as *const _)),
+    (context: $context:expr) => ({
+        let raw = unsafe { &*$context.raw };
+        if raw.err != raw::REDIS_OK {
+            return Err(Error {
+                message: c_str_to_string!(raw.errstr.as_ptr() as *const _),
+            });
+        }
+    });
+    (reply: $reply:expr) => ({
+        let raw = unsafe { &*$reply.raw };
+        if raw.kind == raw::REDIS_REPLY_ERROR {
+            return Err(Error {
+                message: c_str_to_string!(raw.string, raw.len),
             });
         }
     });
@@ -21,7 +33,7 @@ macro_rules! success(
 
 macro_rules! str_to_c_str(
     ($string:expr) => (
-        match ::std::ffi::CString::new($string) {
+        match CString::new($string) {
             Ok(string) => string.as_ptr(),
             Err(_) => raise!("failed to process a string"),
         }
@@ -29,9 +41,14 @@ macro_rules! str_to_c_str(
 );
 
 macro_rules! c_str_to_string(
-    ($string:expr) => (
-        String::from_utf8_lossy(::std::ffi::CStr::from_ptr($string).to_bytes()).into_owned()
-    );
+    ($string:expr, $size:expr) => (unsafe {
+        let slice: &CStr = mem::transmute(slice::from_raw_parts($string as *const c_char,
+                                                                $size as usize + 1));
+        String::from_utf8_lossy(slice.to_bytes()).into_owned()
+    });
+    ($string:expr) => (unsafe {
+        String::from_utf8_lossy(CStr::from_ptr($string).to_bytes()).into_owned()
+    });
 );
 
 /// An argument.
@@ -49,13 +66,23 @@ pub struct Context {
 /// An error.
 #[derive(Debug)]
 pub struct Error {
-    pub message: Option<String>,
+    pub message: String,
 }
 
 /// A reply.
 pub struct Reply {
+    pub kind: ReplyKind,
     raw: *mut raw::redisReply,
     phantom: PhantomData<raw::redisReply>,
+}
+
+/// A reply kind.
+pub enum ReplyKind {
+    Status(String),
+    Integer(i64),
+    Nil,
+    String(String),
+    Array,
 }
 
 /// A result.
@@ -84,7 +111,7 @@ impl Context {
             },
             phantom: PhantomData,
         };
-        success!(context.raw);
+        success!(context: context);
         Ok(context)
     }
 
@@ -100,13 +127,41 @@ impl Context {
             argv.push(pointer);
             argvlen.push(size);
         }
+
         let raw = unsafe {
             raw::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *const *const _,
-                                  argvlen.as_ptr())
+                                  argvlen.as_ptr()) as *mut raw::redisReply
         };
-        success!(self.raw);
+        success!(context: self);
+
         debug_assert!(!raw.is_null());
-        Ok(Reply { raw: raw as *mut _, phantom: PhantomData })
+
+        let mut reply = Reply {
+            kind: ReplyKind::Nil,
+            raw: raw,
+            phantom: PhantomData,
+        };
+        success!(reply: reply);
+
+        let raw = unsafe { &*raw };
+        reply.kind = match raw.kind {
+            raw::REDIS_REPLY_STATUS => {
+                ReplyKind::Status(c_str_to_string!(raw.string, raw.len))
+            },
+            raw::REDIS_REPLY_INTEGER => {
+                ReplyKind::Integer(raw.integer as i64)
+            },
+            raw::REDIS_REPLY_NIL => ReplyKind::Nil,
+            raw::REDIS_REPLY_STRING => {
+                ReplyKind::String(c_str_to_string!(raw.string, raw.len))
+            },
+            raw::REDIS_REPLY_ARRAY => {
+                ReplyKind::Array
+            },
+            _ => raise!("failed to identify a reply"),
+        };
+
+        Ok(reply)
     }
 
     /// Reconnect to the server.
@@ -129,9 +184,14 @@ impl Drop for Context {
 impl<T> From<T> for Error where T: Into<String> {
     #[inline]
     fn from(message: T) -> Error {
-        Error {
-            message: Some(message.into()),
-        }
+        Error { message: message.into() }
+    }
+}
+
+impl Display for Error {
+    #[inline]
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.message, formatter)
     }
 }
 
