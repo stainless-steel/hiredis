@@ -4,12 +4,14 @@ use std::marker::PhantomData;
 
 use Result;
 
+/// A context.
 pub struct Context {
     raw: *mut raw::redisContext,
     phantom: PhantomData<raw::redisContext>,
 }
 
 impl Context {
+    /// Create a context by establishing connection to a server.
     pub fn new(address: &str, port: usize) -> Result<Context> {
         let context = Context {
             raw: unsafe {
