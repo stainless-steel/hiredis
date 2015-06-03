@@ -108,6 +108,15 @@ impl Context {
         debug_assert!(!raw.is_null());
         Ok(Reply { raw: raw as *mut _, phantom: PhantomData })
     }
+
+    /// Reconnect to the server.
+    #[inline]
+    pub fn reconnect(&mut self) -> Result<()> {
+        if unsafe { raw::redisReconnect(self.raw) } != raw::REDIS_OK {
+            raise!("failed to reconnect");
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Context {
