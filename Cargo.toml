@@ -7,3 +7,6 @@ repository = "https://github.com/stainless-steel/hiredis"
 homepage = "https://github.com/stainless-steel/hiredis"
 documentation = "https://stainless-steel.github.io/hiredis"
 description = "The package provides an interface to Hiredis."
+
+[dependencies]
+hiredis-sys = "*"
