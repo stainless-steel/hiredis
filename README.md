@@ -4,6 +4,33 @@ The package provides an interface to [Hiredis][1].
 
 ## [Documentation][doc]
 
+## Example
+
+Assuming that Redis is installed and is listening to port 4242, the example
+given below can be ran using the following command:
+
+```
+cargo run --example workflow
+```
+
+```rust
+extern crate hiredis;
+
+fn main() {
+    let mut context = hiredis::connect("127.0.0.1", 4242).unwrap();
+
+    match context.command(&["SET", "greeting", "Hi, there!"]).unwrap() {
+        Reply::Status(_) => {},
+        _ => assert!(false),
+    }
+
+    match context.command(&["GET", "greeting"]).unwrap() {
+        Reply::Bulk(bytes) => println!("{}", String::from_utf8(bytes).unwrap()),
+        _ => assert!(false),
+    };
+}
+```
+
 ## Contributing
 
 1. Fork the project.
