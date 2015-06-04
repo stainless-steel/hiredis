@@ -103,10 +103,10 @@ impl<'l> AsBytes for &'l [u8] {
 
 impl Context {
     /// Create a context by establishing connection to a server.
-    pub fn new(address: &str, port: usize) -> Result<Context> {
+    pub fn new(host: &str, port: usize) -> Result<Context> {
         let context = Context {
             raw: unsafe {
-                let raw = raw::redisConnect(str_to_c_str!(address), port as c_int);
+                let raw = raw::redisConnect(str_to_c_str!(host), port as c_int);
                 if raw.is_null() {
                     raise!("failed to create a context");
                 }
@@ -217,6 +217,6 @@ impl From<isize> for ErrorKind {
 
 /// Connect to a Redis server.
 #[inline]
-pub fn connect(address: &str, port: usize) -> Result<Context> {
-    Context::new(address, port)
+pub fn connect(host: &str, port: usize) -> Result<Context> {
+    Context::new(host, port)
 }
