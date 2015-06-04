@@ -14,7 +14,7 @@ fn set_get_strings() {
         _ => assert!(false),
     }
     match ok!(context.command(&["GET", "foo"])) {
-        Reply::String(bytes) => assert_eq!(&ok!(String::from_utf8(bytes))[..], "Hi, there!"),
+        Reply::Bulk(bytes) => assert_eq!(&ok!(String::from_utf8(bytes))[..], "Hi, there!"),
         _ => assert!(false),
     }
 }
@@ -27,7 +27,7 @@ fn set_get_bytes() {
         _ => assert!(false),
     }
     match ok!(context.command(&["GET", "bar"])) {
-        Reply::String(ref bytes) => assert_eq!(&bytes[..], &[42u8]),
+        Reply::Bulk(ref bytes) => assert_eq!(&bytes[..], &[42u8]),
         _ => assert!(false),
     }
 }

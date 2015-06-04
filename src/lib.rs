@@ -50,7 +50,7 @@ macro_rules! c_str_to_vec_u8(
     });
 );
 
-/// A command argument.
+/// A trait for command arguments.
 pub trait AsBytes {
     fn as_bytes(&self) -> &[u8];
 }
@@ -72,7 +72,7 @@ pub enum Reply {
     Status(String),
     Integer(i64),
     Nil,
-    String(Vec<u8>),
+    Bulk(Vec<u8>),
     Array,
 }
 
@@ -137,7 +137,7 @@ impl Context {
                     Reply::Nil
                 }
                 raw::REDIS_REPLY_STRING => {
-                    Reply::String(c_str_to_vec_u8!((*raw).string, (*raw).len))
+                    Reply::Bulk(c_str_to_vec_u8!((*raw).string, (*raw).len))
                 },
                 raw::REDIS_REPLY_ARRAY => {
                     Reply::Array
