@@ -16,6 +16,7 @@ macro_rules! success(
     ($context:expr) => (unsafe {
         if (*$context.raw).err != raw::REDIS_OK {
             return Err(Error {
+                kind: ErrorKind::from((*$context.raw).err as isize),
                 message: c_str_to_string!((*$context.raw).errstr.as_ptr() as *const _),
             });
         }
@@ -64,7 +65,18 @@ pub struct Context {
 /// An error.
 #[derive(Debug)]
 pub struct Error {
+    pub kind: ErrorKind,
     pub message: String,
+}
+
+/// An error kind.
+#[derive(Clone, Copy, Debug)]
+pub enum ErrorKind {
+    InputOutput = raw::REDIS_ERR_IO as isize,
+    EndOfFile = raw::REDIS_ERR_EOF as isize,
+    Protocol = raw::REDIS_ERR_PROTOCOL as isize,
+    OutOfMemory = raw::REDIS_ERR_OOM as isize,
+    Other = raw::REDIS_ERR_OTHER as isize,
 }
 
 /// A reply of a command.
@@ -178,7 +190,7 @@ impl Drop for Context {
 impl<T> From<T> for Error where T: Into<String> {
     #[inline]
     fn from(message: T) -> Error {
-        Error { message: message.into() }
+        Error { kind: ErrorKind::Other, message: message.into() }
     }
 }
 
@@ -186,6 +198,20 @@ impl Display for Error {
     #[inline]
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         Display::fmt(&self.message, formatter)
+    }
+}
+
+impl From<isize> for ErrorKind {
+    #[inline]
+    fn from(code: isize) -> ErrorKind {
+        use ErrorKind::*;
+        match code as c_int {
+            raw::REDIS_ERR_IO => InputOutput,
+            raw::REDIS_ERR_EOF => EndOfFile,
+            raw::REDIS_ERR_PROTOCOL => Protocol,
+            raw::REDIS_ERR_OOM => OutOfMemory,
+            _ => Other,
+        }
     }
 }
 
