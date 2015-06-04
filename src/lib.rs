@@ -130,7 +130,7 @@ impl Context {
         }
 
         let raw = unsafe {
-            raw::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *const *const _,
+            raw::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *mut *const _,
                                   argvlen.as_ptr()) as *mut raw::redisReply
         };
 
