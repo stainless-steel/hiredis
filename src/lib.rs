@@ -67,13 +67,13 @@ pub struct Error {
     pub message: String,
 }
 
-/// A reply.
+/// A reply of a command.
 pub enum Reply {
     Status(String),
     Integer(i64),
-    Nil,
     Bulk(Vec<u8>),
     Array,
+    Nil,
 }
 
 /// A result.
