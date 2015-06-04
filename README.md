@@ -1,4 +1,4 @@
-# Hiredis [![Build Status][status-img]][status-url]
+# Hiredis [![Version][version-img]][version-url] [![Status][status-img]][status-url]
 
 The package provides an interface to [Hiredis][1].
 
@@ -39,6 +39,8 @@ fn main() {
 
 [1]: https://github.com/redis/hiredis
 
+[version-img]: https://img.shields.io/crates/v/hiredis.svg
+[version-url]: https://crates.io/crates/hiredis
 [status-img]: https://travis-ci.org/stainless-steel/hiredis.svg?branch=master
 [status-url]: https://travis-ci.org/stainless-steel/hiredis
 [doc]: https://stainless-steel.github.io/hiredis
