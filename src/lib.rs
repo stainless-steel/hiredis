@@ -70,7 +70,7 @@ pub struct Error {
 }
 
 /// An error kind.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ErrorKind {
     InputOutput = raw::REDIS_ERR_IO as isize,
     EndOfFile = raw::REDIS_ERR_EOF as isize,
