@@ -42,10 +42,17 @@ macro_rules! c_str_to_string(
     });
 );
 
-/// An argument.
-pub struct Argument {
-    pointer: *mut c_char,
-    size: size_t,
+macro_rules! c_str_to_vec_u8(
+    ($string:expr, $size:expr) => ({
+        let slice: &[u8] = mem::transmute(slice::from_raw_parts($string as *const c_char,
+                                                                $size as usize));
+        Vec::from(slice)
+    });
+);
+
+/// A command argument.
+pub trait AsBytes {
+    fn as_bytes(&self) -> &[u8];
 }
 
 /// A context.
@@ -65,21 +72,21 @@ pub enum Reply {
     Status(String),
     Integer(i64),
     Nil,
-    String(String),
+    String(Vec<u8>),
     Array,
 }
 
 /// A result.
 pub type Result<T> = std::result::Result<T, Error>;
 
-impl<'l> From<&'l &'l str> for Argument {
+impl<'l> AsBytes for &'l str {
     #[inline]
-    fn from(data: &'l &'l str) -> Argument {
-        Argument {
-            pointer: data.as_ptr() as *mut u8 as *mut _,
-            size: data.len() as size_t,
-        }
-    }
+    fn as_bytes(&self) -> &[u8] { (*self).as_bytes() }
+}
+
+impl<'l> AsBytes for &'l [u8] {
+    #[inline]
+    fn as_bytes(&self) -> &[u8] { self }
 }
 
 impl Context {
@@ -100,16 +107,14 @@ impl Context {
     }
 
     /// Issue a command.
-    pub fn command<'l, T>(&mut self, arguments: &'l [T]) -> Result<Reply>
-        where &'l T: Into<Argument>
-    {
+    pub fn command<T: AsBytes>(&mut self, arguments: &[T]) -> Result<Reply> {
         let argc = arguments.len();
-        let mut argv = Vec::with_capacity(argc);
+        let mut argv: Vec<*const c_char> = Vec::with_capacity(argc);
         let mut argvlen = Vec::with_capacity(argc);
         for argument in arguments.iter() {
-            let Argument { pointer, size } = argument.into();
-            argv.push(pointer);
-            argvlen.push(size);
+            let data = argument.as_bytes();
+            argv.push(data.as_ptr() as *const _ as *const _);
+            argvlen.push(data.len() as size_t);
         }
 
         let raw = unsafe {
@@ -132,7 +137,7 @@ impl Context {
                     Reply::Nil
                 }
                 raw::REDIS_REPLY_STRING => {
-                    Reply::String(c_str_to_string!((*raw).string, (*raw).len))
+                    Reply::String(c_str_to_vec_u8!((*raw).string, (*raw).len))
                 },
                 raw::REDIS_REPLY_ARRAY => {
                     Reply::Array
