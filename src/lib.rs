@@ -215,6 +215,13 @@ impl From<isize> for ErrorKind {
     }
 }
 
+impl Display for ErrorKind {
+    #[inline]
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        write!(formatter, "Hiredis error code {}", *self as isize)
+    }
+}
+
 /// Connect to a Redis server.
 #[inline]
 pub fn connect(host: &str, port: usize) -> Result<Context> {
