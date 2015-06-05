@@ -8,7 +8,7 @@ macro_rules! ok(
 
 #[test]
 fn set_get_strings() {
-    let mut context = ok!(hiredis::connect("127.0.0.1", 4242));
+    let mut context = ok!(hiredis::connect("127.0.0.1", 6379));
     match ok!(context.command(&["SET", "foo", "Hi, there!"])) {
         Reply::Status(ref string) => assert_eq!(&string[..], "OK"),
         _ => assert!(false),
@@ -21,7 +21,7 @@ fn set_get_strings() {
 
 #[test]
 fn set_get_bytes() {
-    let mut context = ok!(hiredis::connect("127.0.0.1", 4242));
+    let mut context = ok!(hiredis::connect("127.0.0.1", 6379));
     match ok!(context.command(&[&b"SET"[..], &b"bar"[..], &[42u8]])) {
         Reply::Status(ref string) => assert_eq!(&string[..], "OK"),
         _ => assert!(false),

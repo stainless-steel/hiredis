@@ -6,7 +6,7 @@ The package provides an interface to [Hiredis][1].
 
 ## Example
 
-Assuming that Redis is installed and is listening to port 4242, the example
+Assuming that Redis is installed and is listening to port 6379, the example
 given below can be ran using the following command:
 
 ```
@@ -17,7 +17,7 @@ cargo run --example workflow
 extern crate hiredis;
 
 fn main() {
-    let mut context = hiredis::connect("127.0.0.1", 4242).unwrap();
+    let mut context = hiredis::connect("127.0.0.1", 6379).unwrap();
 
     match context.command(&["SET", "greeting", "Hi, there!"]).unwrap() {
         Reply::Status(_) => {},
