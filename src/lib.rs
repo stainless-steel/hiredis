@@ -138,35 +138,9 @@ impl Context {
         debug_assert!(!raw.is_null());
 
         unsafe {
-            let reply = match (*raw).kind {
-                raw::REDIS_REPLY_STATUS => {
-                    Reply::Status(c_str_to_string!((*raw).string, (*raw).len))
-                },
-                raw::REDIS_REPLY_INTEGER => {
-                    Reply::Integer((*raw).integer as i64)
-                },
-                raw::REDIS_REPLY_NIL => {
-                    Reply::Nil
-                }
-                raw::REDIS_REPLY_STRING => {
-                    Reply::Bulk(c_str_to_vec_u8!((*raw).string, (*raw).len))
-                },
-                raw::REDIS_REPLY_ARRAY => {
-                    Reply::Array
-                },
-                raw::REDIS_REPLY_ERROR => {
-                    let message = c_str_to_string!((*raw).string, (*raw).len);
-                    raw::freeReplyObject(raw as *mut _);
-                    raise!(message);
-                },
-                _ => {
-                    raw::freeReplyObject(raw as *mut _);
-                    raise!("failed to identify a reply");
-                },
-            };
+            let reply = process_reply(raw);
             raw::freeReplyObject(raw as *mut _);
-
-            Ok(reply)
+            reply
         }
     }
 
@@ -226,4 +200,30 @@ impl Display for ErrorKind {
 #[inline]
 pub fn connect(host: &str, port: usize) -> Result<Context> {
     Context::new(host, port)
+}
+
+unsafe fn process_reply(raw: *mut raw::redisReply) -> Result<Reply> {
+    Ok(match (*raw).kind {
+        raw::REDIS_REPLY_STATUS => {
+            Reply::Status(c_str_to_string!((*raw).string, (*raw).len))
+        },
+        raw::REDIS_REPLY_INTEGER => {
+            Reply::Integer((*raw).integer as i64)
+        },
+        raw::REDIS_REPLY_NIL => {
+            Reply::Nil
+        }
+        raw::REDIS_REPLY_STRING => {
+            Reply::Bulk(c_str_to_vec_u8!((*raw).string, (*raw).len))
+        },
+        raw::REDIS_REPLY_ARRAY => {
+            Reply::Array
+        },
+        raw::REDIS_REPLY_ERROR => {
+            raise!(c_str_to_string!((*raw).string, (*raw).len));
+        },
+        _ => {
+            raise!("failed to identify a reply");
+        },
+    })
 }
