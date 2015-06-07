@@ -80,11 +80,12 @@ pub enum ErrorKind {
 }
 
 /// A reply of a command.
+#[derive(Debug)]
 pub enum Reply {
     Status(String),
     Integer(i64),
     Bulk(Vec<u8>),
-    Array,
+    Array(Vec<Reply>),
     Nil,
 }
 
@@ -217,7 +218,12 @@ unsafe fn process_reply(raw: *mut raw::redisReply) -> Result<Reply> {
             Reply::Bulk(c_str_to_vec_u8!((*raw).string, (*raw).len))
         },
         raw::REDIS_REPLY_ARRAY => {
-            Reply::Array
+            let count = (*raw).elements as usize;
+            let mut elements = Vec::with_capacity(count);
+            for i in 0..count {
+                elements.push(try!(process_reply(*(*raw).element.offset(i as isize))));
+            }
+            Reply::Array(elements)
         },
         raw::REDIS_REPLY_ERROR => {
             raise!(c_str_to_string!((*raw).string, (*raw).len));
