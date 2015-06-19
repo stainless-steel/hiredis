@@ -20,7 +20,7 @@
 //!
 //! [1]: https://github.com/redis/hiredis
 
-extern crate hiredis_sys as raw;
+extern crate hiredis_sys as ffi;
 extern crate libc;
 
 use libc::{c_char, c_int, size_t};
@@ -36,7 +36,7 @@ macro_rules! raise(
 
 macro_rules! success(
     ($context:expr) => (unsafe {
-        if (*$context.raw).err != raw::REDIS_OK {
+        if (*$context.raw).err != ffi::REDIS_OK {
             return Err(Error {
                 kind: ErrorKind::from((*$context.raw).err as isize),
                 message: c_str_to_string!((*$context.raw).errstr.as_ptr() as *const _),
@@ -80,8 +80,8 @@ pub trait AsBytes {
 
 /// A context.
 pub struct Context {
-    raw: *mut raw::redisContext,
-    phantom: PhantomData<raw::redisContext>,
+    raw: *mut ffi::redisContext,
+    phantom: PhantomData<ffi::redisContext>,
 }
 
 /// An error.
@@ -94,11 +94,11 @@ pub struct Error {
 /// An error kind.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ErrorKind {
-    InputOutput = raw::REDIS_ERR_IO as isize,
-    EndOfFile = raw::REDIS_ERR_EOF as isize,
-    Protocol = raw::REDIS_ERR_PROTOCOL as isize,
-    OutOfMemory = raw::REDIS_ERR_OOM as isize,
-    Other = raw::REDIS_ERR_OTHER as isize,
+    InputOutput = ffi::REDIS_ERR_IO as isize,
+    EndOfFile = ffi::REDIS_ERR_EOF as isize,
+    Protocol = ffi::REDIS_ERR_PROTOCOL as isize,
+    OutOfMemory = ffi::REDIS_ERR_OOM as isize,
+    Other = ffi::REDIS_ERR_OTHER as isize,
 }
 
 /// A reply of a command.
@@ -129,7 +129,7 @@ impl Context {
     pub fn new(host: &str, port: usize) -> Result<Context> {
         let context = Context {
             raw: unsafe {
-                let raw = raw::redisConnect(str_to_c_str!(host), port as c_int);
+                let raw = ffi::redisConnect(str_to_c_str!(host), port as c_int);
                 if raw.is_null() {
                     raise!("failed to create a context");
                 }
@@ -153,8 +153,8 @@ impl Context {
         }
 
         let raw = unsafe {
-            raw::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *mut *const _,
-                                  argvlen.as_ptr()) as *mut raw::redisReply
+            ffi::redisCommandArgv(self.raw, argc as c_int, argv.as_ptr() as *mut *const _,
+                                  argvlen.as_ptr()) as *mut ffi::redisReply
         };
 
         success!(self);
@@ -162,7 +162,7 @@ impl Context {
 
         unsafe {
             let reply = process_reply(raw);
-            raw::freeReplyObject(raw as *mut _);
+            ffi::freeReplyObject(raw as *mut _);
             reply
         }
     }
@@ -170,7 +170,7 @@ impl Context {
     /// Reconnect to the server.
     #[inline]
     pub fn reconnect(&mut self) -> Result<()> {
-        if unsafe { raw::redisReconnect(self.raw) } != raw::REDIS_OK {
+        if unsafe { ffi::redisReconnect(self.raw) } != ffi::REDIS_OK {
             raise!("failed to reconnect");
         }
         Ok(())
@@ -180,7 +180,7 @@ impl Context {
 impl Drop for Context {
     #[inline]
     fn drop(&mut self) {
-        unsafe { raw::redisFree(self.raw) };
+        unsafe { ffi::redisFree(self.raw) };
     }
 }
 
@@ -203,10 +203,10 @@ impl From<isize> for ErrorKind {
     fn from(code: isize) -> ErrorKind {
         use ErrorKind::*;
         match code as c_int {
-            raw::REDIS_ERR_IO => InputOutput,
-            raw::REDIS_ERR_EOF => EndOfFile,
-            raw::REDIS_ERR_PROTOCOL => Protocol,
-            raw::REDIS_ERR_OOM => OutOfMemory,
+            ffi::REDIS_ERR_IO => InputOutput,
+            ffi::REDIS_ERR_EOF => EndOfFile,
+            ffi::REDIS_ERR_PROTOCOL => Protocol,
+            ffi::REDIS_ERR_OOM => OutOfMemory,
             _ => Other,
         }
     }
@@ -225,21 +225,21 @@ pub fn connect(host: &str, port: usize) -> Result<Context> {
     Context::new(host, port)
 }
 
-unsafe fn process_reply(raw: *mut raw::redisReply) -> Result<Reply> {
+unsafe fn process_reply(raw: *mut ffi::redisReply) -> Result<Reply> {
     Ok(match (*raw).kind {
-        raw::REDIS_REPLY_STATUS => {
+        ffi::REDIS_REPLY_STATUS => {
             Reply::Status(c_str_to_string!((*raw).string, (*raw).len))
         },
-        raw::REDIS_REPLY_INTEGER => {
+        ffi::REDIS_REPLY_INTEGER => {
             Reply::Integer((*raw).integer as i64)
         },
-        raw::REDIS_REPLY_NIL => {
+        ffi::REDIS_REPLY_NIL => {
             Reply::Nil
         }
-        raw::REDIS_REPLY_STRING => {
+        ffi::REDIS_REPLY_STRING => {
             Reply::Bulk(c_str_to_vec_u8!((*raw).string, (*raw).len))
         },
-        raw::REDIS_REPLY_ARRAY => {
+        ffi::REDIS_REPLY_ARRAY => {
             let count = (*raw).elements as usize;
             let mut elements = Vec::with_capacity(count);
             for i in 0..count {
@@ -247,7 +247,7 @@ unsafe fn process_reply(raw: *mut raw::redisReply) -> Result<Reply> {
             }
             Reply::Array(elements)
         },
-        raw::REDIS_REPLY_ERROR => {
+        ffi::REDIS_REPLY_ERROR => {
             raise!(c_str_to_string!((*raw).string, (*raw).len));
         },
         _ => {
