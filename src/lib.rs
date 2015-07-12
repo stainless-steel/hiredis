@@ -148,7 +148,7 @@ impl Context {
         let mut argvlen = Vec::with_capacity(argc);
         for argument in arguments.iter() {
             let data = argument.as_bytes();
-            argv.push(data.as_ptr() as *const _ as *const _);
+            argv.push(data.as_ptr() as *const _);
             argvlen.push(data.len() as size_t);
         }
 
