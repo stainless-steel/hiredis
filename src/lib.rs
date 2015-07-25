@@ -27,8 +27,7 @@ use libc::{c_char, c_int, size_t};
 use std::convert::{From, Into};
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
-use std::fmt::{self, Display, Formatter};
-use std::{mem, slice};
+use std::{error, fmt, mem, slice};
 
 macro_rules! raise(
     ($message:expr) => (return Err(Error::from($message)));
@@ -191,10 +190,17 @@ impl<T> From<T> for Error where T: Into<String> {
     }
 }
 
-impl Display for Error {
+impl fmt::Display for Error {
     #[inline]
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.message, formatter)
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.message, formatter)
+    }
+}
+
+impl error::Error for Error {
+    #[inline]
+    fn description(&self) -> &str {
+        &self.message
     }
 }
 
@@ -212,9 +218,9 @@ impl From<isize> for ErrorKind {
     }
 }
 
-impl Display for ErrorKind {
+impl fmt::Display for ErrorKind {
     #[inline]
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "Hiredis error code {}", *self as isize)
     }
 }
