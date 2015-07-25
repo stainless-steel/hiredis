@@ -193,7 +193,7 @@ impl<T> From<T> for Error where T: Into<String> {
 impl fmt::Display for Error {
     #[inline]
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.message, formatter)
+        self.message.fmt(formatter)
     }
 }
 
