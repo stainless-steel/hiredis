@@ -44,13 +44,11 @@ macro_rules! success(
     });
 );
 
-macro_rules! str_to_c_str(
-    ($string:expr) => (
-        match CString::new($string) {
-            Ok(string) => string.as_ptr(),
-            Err(_) => raise!("failed to process a string"),
-        }
-    );
+macro_rules! str_to_cstr(
+    ($string:expr) => (match CString::new($string) {
+        Ok(string) => string,
+        _ => raise!("failed to process a string"),
+    });
 );
 
 macro_rules! c_str_to_string(
@@ -128,7 +126,7 @@ impl Context {
     pub fn new(host: &str, port: usize) -> Result<Context> {
         let context = Context {
             raw: unsafe {
-                let raw = ffi::redisConnect(str_to_c_str!(host), port as c_int);
+                let raw = ffi::redisConnect(str_to_cstr!(host).as_ptr(), port as c_int);
                 if raw.is_null() {
                     raise!("failed to create a context");
                 }
