@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ErrorKind","An error kind."],["Reply","A reply of a command."]],"fn":[["connect","Connect to a Redis server."]],"struct":[["Context","A context."],["Error","An error."]],"trait":[["AsBytes","A trait for command arguments."]],"type":[["Result","A result."]]});
