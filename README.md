@@ -22,16 +22,16 @@ match context.command(&["GET", "greeting"]).unwrap() {
 };
 ```
 
-## Contributing
+## Contribution
 
-1. Fork the project.
-2. Implement your idea.
-3. Open a pull request.
+Your contribution is highly appreciated. Do not hesitate to open an issue or a
+pull request. Note that any contribution submitted for inclusion in the project
+will be licensed according to the terms given in [LICENSE.md](LICENSE.md).
 
 [1]: https://github.com/redis/hiredis
 
-[version-img]: https://img.shields.io/crates/v/hiredis.svg
-[version-url]: https://crates.io/crates/hiredis
+[doc]: https://stainless-steel.github.io/hiredis
 [status-img]: https://travis-ci.org/stainless-steel/hiredis.svg?branch=master
 [status-url]: https://travis-ci.org/stainless-steel/hiredis
-[doc]: https://stainless-steel.github.io/hiredis
+[version-img]: https://img.shields.io/crates/v/hiredis.svg
+[version-url]: https://crates.io/crates/hiredis
