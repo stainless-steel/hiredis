@@ -2,7 +2,7 @@
 
 The package provides an interface to [Hiredis][1].
 
-## [Documentation][doc]
+## [Documentation][documentation]
 
 ## Example
 
@@ -30,7 +30,7 @@ will be licensed according to the terms given in [LICENSE.md](LICENSE.md).
 
 [1]: https://github.com/redis/hiredis
 
-[doc]: https://stainless-steel.github.io/hiredis
+[documentation]: https://docs.rs/hiredis
 [status-img]: https://travis-ci.org/stainless-steel/hiredis.svg?branch=master
 [status-url]: https://travis-ci.org/stainless-steel/hiredis
 [version-img]: https://img.shields.io/crates/v/hiredis.svg

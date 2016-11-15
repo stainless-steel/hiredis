@@ -9,12 +9,5 @@ rust:
 before_script:
   - redis-server tests/fixtures/redis.conf
 
-after_success:
-  - curl https://stainless-steel.github.io/travis/documentation.sh | bash
-
-env:
-  global:
-    - secure: kgeVTtp9IpZEZWi3d1AJDaLb5kRdQkhRYmH0qyYFvV+QVH1vQnvf+s7YtKVYcE7K/vcHwRtcLJpFwNganckb49BJxY3jVDqIFDWgudKNGWnf12OFpX0WZsPA+4YY5yo/qz9yxH1ni9teu4+39Ks03VVhMdzSyAYrctsLht86NG74XJIWIeaouOkP8mi7jEeD3YxhtZo1z3uv9Kf98U42EleP4hWlRSxY42VZ3ux4Dt32G+MGzDXQiXGedsY+B0zFacwwnwjeBVK16hJAiFVmWyKeTq42v775brfKMbs30LT/RfZSrIq8nQ/0eDnd/2rXMnxLaAx24BzZhTj1OQEWHVigw/OC7scTeNamlhNde+QGs3CJEaCUwgHCgUzTMruGdC3xbCuusLapOUD1iVBG9NKPsgG8vPHGwRGmHRf6m+nzPioRyd5reqen5itnKBpwJ0lozIvMT9IU0URIxi+74JuwX6Mv2W/d5Ri0n/1qVO53tooVfk+Lx1a8ys577l3u1tLjd8oOKZ+9G4kWKccw6cQPR2iMrFtwuEe9GfelCNxTp7NpuuF5vLhIPSrFtPrwVYjFWaYRTpOlcpCOAccSP1V9D4uLHdtiqPJTQ+9JzscjFOLFXdPpHgzP6Q3Aty0I7ObyBDT/yJO3llFHCW4OuECdccvhPiQH2tD1LXwbhcw=
-
 notifications:
   email: false
